@@ -1,4 +1,4 @@
-# Red Dragon OffSec
+# RedDragon OffSec
 
 A growing offensive security, ethical hacking, automation, and lab repository focused on practical learning, workflow optimization, and cybersecurity operations.
 
