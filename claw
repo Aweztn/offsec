@@ -1,0 +1,54 @@
+#!/bin/bash
+
+set -euo pipefail
+
+#
+# ENSURE ROOT
+#
+
+if [[ $EUID -ne 0 ]]; then
+    echo
+    echo "[!] Please run as root."
+    echo
+
+    exec sudo "$0" "$@"
+fi
+
+#
+# CONFIG
+#
+
+OPENCLAW_PORT="${OPENCLAW_PORT:-18789}"
+
+clear
+
+echo "======================================"
+echo "        OPENCLAW CONSOLE"
+echo "======================================"
+echo
+echo "[+] Running as root..."
+echo
+echo "[+] Launching gateway terminal..."
+echo
+
+qterminal -e zsh -c "
+    clear
+
+    echo '======================================'
+    echo '        OPENCLAW GATEWAY'
+    echo '======================================'
+    echo
+
+    openclaw gateway --port '$OPENCLAW_PORT' --force
+
+    exec zsh
+" &
+
+echo "[+] Waiting for gateway initialization..."
+sleep 5
+
+echo
+echo "[+] Launching dashboard..."
+echo
+
+openclaw dashboard
