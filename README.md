@@ -1,28 +1,39 @@
-# Linux Toolkit
+# Red Dragon OffSec
 
-A collection of Linux automation, diagnostics, maintenance, and offensive security workflow scripts built for Kali Linux and cybersecurity lab environments.
+A growing offensive security, ethical hacking, automation, and lab repository focused on practical learning, workflow optimization, and cybersecurity operations.
 
-These scripts were designed for personal lab use, Hack The Box workflows, system maintenance, and streamlined offensive security operations.
+This repository contains Linux tooling, offensive security workflows, Hack The Box resources, automation scripts, and future walkthroughs developed throughout hands-on learning and red team training.
 
----
+Built primarily around:
 
-## Features
-
-- System maintenance and cleanup
-- Go offensive security tool updates
-- VMware shared folder mounting
-- Hack The Box VPN automation
-- System health monitoring
-- OpenClaw launcher workflow
-- VPN cleanup and stale interface removal
-- Offensive security lab convenience scripts
+- Kali Linux
+- Hack The Box (HTB)
+- CPTS preparation
+- Offensive Security (OffSec)
+- Linux automation
+- Lab workflow optimization
 
 ---
 
-## Repository Structure
+## Repository Goals
+
+This repository is intended to grow into a complete offensive security knowledge base containing:
+
+- Automation scripts
+- HTB workflows
+- Enumeration methodologies
+- Walkthroughs and notes
+- Red team utilities
+- Cheat sheets
+- Lab setup automation
+- Ethical hacking resources
+
+---
+
+## Current Repository Structure
 
 ```text
-linux-toolkit/
+red-dragon-offsec/
 ├── scripts/
 │   ├── cleanse
 │   ├── dragon
@@ -39,19 +50,34 @@ linux-toolkit/
 
 ### `cleanse`
 
-System maintenance and cleanup automation for Kali Linux.
+Linux maintenance, cleanup, and offensive security environment preparation.
+
+Designed to automate common Kali Linux maintenance tasks while preparing a lab environment for offensive security work.
 
 #### Features
+
 - `apt update` + `full-upgrade`
 - Package cleanup
 - DNS reset
 - Broken symlink cleanup
-- x86_64 binary removal on ARM systems
+- x86_64 binary cleanup on ARM systems
 - Broken binary detection
 - VMware shared folder mounting
 - Go offensive security tool updates
 - OpenVPN cleanup
 - Stale VPN interface cleanup
+
+#### Important VMware Dependency
+
+If using **VMware Fusion shared folders**, run `cleanse` before `htb`.
+
+`cleanse` automatically mounts:
+
+```text
+/mnt/hgfs
+```
+
+This mount is required for HTB VPN configuration access.
 
 #### Usage
 
@@ -65,7 +91,10 @@ sudo cleanse
 
 Terminal-based Linux system health dashboard.
 
+Provides a quick overview of system health and offensive security lab readiness.
+
 #### Features
+
 - CPU / RAM / Disk usage
 - DNS servers
 - Internet connectivity
@@ -93,17 +122,34 @@ sudo health --live
 
 ### `htb`
 
-Launches Hack The Box VPN in a separate terminal window.
+Hack The Box VPN launcher.
+
+Launches an HTB VPN connection in a separate terminal session while preserving the current shell.
+
+#### Important Dependency
+
+If using VMware Fusion shared folders:
+
+**Run `cleanse` first.**
+
+`htb` expects VPN configurations to be accessible through:
+
+```text
+/mnt/hgfs
+```
+
+Without mounted shared folders, VPN configuration files will not be found.
 
 #### Features
+
 - VPN config verification
 - Separate terminal session
-- Returns focus to current window
+- Automatic focus return
 - Simplified HTB workflow
 
 #### Configuration
 
-By default:
+Default values:
 
 ```bash
 VPN_DIR=/mnt/hgfs
@@ -127,12 +173,15 @@ sudo htb
 
 ### `claw`
 
-Launch helper for OpenClaw gateway and dashboard.
+OpenClaw launcher workflow.
+
+Starts the OpenClaw gateway in a separate terminal and launches the dashboard automatically.
 
 #### Features
-- Opens OpenClaw gateway in a separate terminal
-- Automatically launches dashboard
-- Configurable port
+
+- Gateway automation
+- Dashboard auto-launch
+- Configurable port support
 
 #### Usage
 
@@ -150,7 +199,9 @@ OPENCLAW_PORT=18789 claw
 
 ### `dragon`
 
-Workflow launcher that chains multiple tools together.
+Primary offensive security workflow launcher.
+
+Automates a common lab startup sequence.
 
 #### Workflow
 
@@ -158,15 +209,15 @@ Workflow launcher that chains multiple tools together.
 cleanse → htb → health
 ```
 
-#### Important Dependency Notice
+#### Dependencies
 
-`dragon` depends on the following scripts being installed and accessible in your PATH:
+`dragon` requires:
 
 - `cleanse`
 - `htb`
 - `health`
 
-If these are missing, `dragon` will not function properly.
+Because `dragon` launches `cleanse` first, VMware shared folders are mounted automatically before launching `htb`.
 
 #### Usage
 
@@ -181,8 +232,8 @@ sudo dragon
 Clone the repository:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/linux-toolkit.git
-cd linux-toolkit
+git clone https://github.com/YOUR_USERNAME/red-dragon-offsec.git
+cd red-dragon-offsec
 ```
 
 Make scripts executable:
@@ -214,7 +265,7 @@ which dragon
 Recommended environment:
 
 - Kali Linux
-- VMware (optional)
+- VMware Fusion (optional)
 - QTerminal
 - OpenVPN
 - Go
@@ -229,11 +280,33 @@ sudo apt install qterminal xdotool openvpn curl -y
 
 ---
 
+## Future Additions
+
+Planned repository growth may include:
+
+- HTB walkthroughs
+- Enumeration workflows
+- Nmap methodology
+- DNS footprinting
+- Web enumeration
+- Windows/Linux privilege escalation notes
+- CPTS study resources
+- Red team automation
+- Offensive security cheat sheets
+
+---
+
 ## Disclaimer
 
-These scripts are intended for educational purposes, lab environments, authorized systems, and cybersecurity research only.
+This repository is intended for:
 
-Always ensure you have permission to access or test any environment.
+- Ethical hacking
+- Authorized security testing
+- Lab environments
+- Education
+- Cybersecurity research
+
+Only perform security testing against systems you own or are explicitly authorized to assess.
 
 ---
 
