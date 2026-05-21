@@ -1,0 +1,283 @@
+#!/bin/bash
+
+set -euo pipefail
+
+#
+# ENSURE ROOT
+#
+
+if [[ $EUID -ne 0 ]]; then
+    echo
+    echo "[!] Please run as root."
+    echo
+
+    exec sudo "$0" "$@"
+fi
+
+#
+# CONFIG
+#
+
+USER_NAME="${SUDO_USER:-$(logname 2>/dev/null || echo root)}"
+
+DNS1="1.1.1.1"
+DNS2="8.8.8.8"
+
+GO_TOOLS=(
+    "github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest"
+    "github.com/projectdiscovery/httpx/cmd/httpx@latest"
+    "github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest"
+    "github.com/projectdiscovery/dnsx/cmd/dnsx@latest"
+    "github.com/projectdiscovery/katana/cmd/katana@latest"
+    "github.com/tomnomnom/assetfinder@latest"
+    "github.com/tomnomnom/waybackurls@latest"
+    "github.com/lc/gau/v2/cmd/gau@latest"
+    "github.com/ffuf/ffuf@latest"
+    "github.com/sensepost/gowitness@latest"
+    "github.com/003random/getJS/v2@latest"
+)
+
+clear
+
+echo "======================================"
+echo "[+] STARTING CLEANSE"
+echo "======================================"
+
+#
+# SYSTEM UPDATE
+#
+
+echo
+echo "[+] Updating system..."
+
+apt update
+apt full-upgrade -y
+
+#
+# DNS
+#
+
+echo
+echo "[+] Setting DNS..."
+
+tee /etc/resolv.conf >/dev/null <<EOF
+nameserver $DNS1
+nameserver $DNS2
+EOF
+
+#
+# CLEAN PACKAGES
+#
+
+echo
+echo "[+] Cleaning packages..."
+
+apt autoremove -y
+apt clean
+apt autoclean
+
+#
+# REMOVE SAFE BROKEN SYMLINKS
+#
+
+echo
+echo "[+] Removing safe broken symlinks..."
+
+for dir in /usr/local /opt /root/tools "/home/$USER_NAME/tools"; do
+
+    [[ -d "$dir" ]] || continue
+
+    find "$dir" -type l -xtype l 2>/dev/null | while read -r link; do
+
+        echo "[!] Removing broken symlink: $link"
+        rm -f "$link"
+
+    done
+
+done
+
+#
+# REMOVE x86_64 BINARIES ON ARM
+#
+
+echo
+echo "[+] Removing incompatible x86_64 binaries..."
+
+for dir in /usr/local/bin /root/go/bin "/home/$USER_NAME/go/bin"; do
+
+    [[ -d "$dir" ]] || continue
+
+    find "$dir" -type f -executable 2>/dev/null | while read -r file; do
+
+        if file "$file" | grep -q "x86-64"; then
+
+            echo "[!] Removing incompatible binary: $file"
+            rm -f "$file"
+
+        fi
+
+    done
+
+done
+
+#
+# REMOVE BROKEN BINARIES
+#
+
+echo
+echo "[+] Detecting broken binaries..."
+
+BROKEN_FILES=()
+
+for dir in /usr/local/bin /root/go/bin "/home/$USER_NAME/go/bin"; do
+
+    [[ -d "$dir" ]] || continue
+
+    while IFS= read -r file; do
+
+        if ldd "$file" 2>/dev/null | grep -q "not found"; then
+
+            echo "[!] Broken binary detected: $file"
+
+            BROKEN_FILES+=("$file")
+
+        fi
+
+    done < <(find "$dir" -type f -executable 2>/dev/null)
+
+done
+
+if [[ ${#BROKEN_FILES[@]} -gt 0 ]]; then
+
+    echo
+    echo "[!] Remove detected broken binaries? (y/N)"
+    read -r confirm
+
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+
+        for file in "${BROKEN_FILES[@]}"; do
+
+            echo "[!] Removing: $file"
+            rm -f "$file"
+
+        done
+
+    else
+
+        echo "[+] Skipping removal"
+
+    fi
+
+else
+
+    echo "[+] No broken binaries detected"
+
+fi
+
+#
+# CLEAN TEMP/CACHE
+#
+
+echo
+echo "[+] Cleaning temp/cache..."
+
+find /tmp -mindepth 1 -mtime +1 -delete 2>/dev/null
+
+rm -rf /root/.cache/thumbnails/* 2>/dev/null || true
+rm -rf "/home/$USER_NAME/.cache/thumbnails/"* 2>/dev/null || true
+
+#
+# UPDATE LOCATE DATABASE
+#
+
+echo
+echo "[+] Updating locate database..."
+
+updatedb
+
+#
+# VMWARE SHARES
+#
+
+echo
+echo "[+] Mounting VMware shared folders..."
+
+mkdir -p /mnt/hgfs
+
+if ! mountpoint -q /mnt/hgfs; then
+    vmhgfs-fuse .host:/ /mnt/hgfs -o allow_other
+else
+    echo "[+] VMware shares already mounted"
+fi
+
+#
+# GO TOOL UPDATES (ROOT)
+#
+
+echo
+echo "[+] Updating Go tools for root..."
+
+for tool in "${GO_TOOLS[@]}"; do
+    go install "$tool"
+done
+
+#
+# GO TOOL UPDATES (USER)
+#
+
+echo
+echo "[+] Updating Go tools for $USER_NAME..."
+
+for tool in "${GO_TOOLS[@]}"; do
+    sudo -H -u "$USER_NAME" go install "$tool"
+done
+
+#
+# FORCE VPN CLEANUP
+#
+
+echo
+echo "[+] Killing OpenVPN processes..."
+
+pkill -2 openvpn 2>/dev/null || true
+sleep 2
+
+pkill -9 openvpn 2>/dev/null || true
+pkill -9 openvpn3 2>/dev/null || true
+
+echo
+echo "[+] Removing stale VPN interfaces..."
+
+ip -o link show | awk -F': ' '{print $2}' | grep -E '^(tun|tap)[0-9]+' | while read -r iface; do
+
+    echo "[!] Bringing down: $iface"
+
+    ip link set "$iface" down 2>/dev/null || true
+
+    echo "[!] Deleting: $iface"
+
+    ip tuntap del dev "$iface" mode tun 2>/dev/null || true
+    ip link delete "$iface" 2>/dev/null || true
+
+done
+
+echo
+echo "[+] Flushing stale VPN routes..."
+
+ip route | grep tun | while read -r route; do
+    ip route del $route 2>/dev/null || true
+done
+
+echo
+echo "[+] Remaining VPN interfaces..."
+
+ip -brief addr | grep -E 'tun|tap' || echo "[+] No VPN interfaces remaining"
+
+#
+# COMPLETE
+#
+
+echo
+echo "======================================"
+echo "[+] CLEANSE COMPLETE"
+echo "======================================"
