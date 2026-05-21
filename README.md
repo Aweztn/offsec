@@ -232,7 +232,7 @@ sudo dragon
 Clone the repository:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/red-dragon-offsec.git
+git clone https://github.com/aweztn/red-dragon-offsec.git
 cd red-dragon-offsec
 ```
 
