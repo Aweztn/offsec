@@ -1,0 +1,112 @@
+#!/bin/bash
+
+set -euo pipefail
+
+#
+# ENSURE ROOT
+#
+
+if [[ $EUID -ne 0 ]]; then
+    echo
+    echo "[!] Please run as root."
+    echo
+
+    exec sudo "$0" "$@"
+fi
+
+#
+# CONFIG
+#
+
+VPN_DIR="${VPN_DIR:-/mnt/hgfs}"
+VPN_FILE="${VPN_FILE:-academy-regular.ovpn}"
+
+VPN_PATH="$VPN_DIR/$VPN_FILE"
+
+clear
+
+echo "======================================"
+echo "         HTB VPN CONNECTOR"
+echo "======================================"
+
+echo
+
+#
+# VERIFY HGFS
+#
+
+if [[ ! -d "$VPN_DIR" ]]; then
+
+    echo "[!] HGFS mount not found."
+    echo
+    echo "[+] Run cleanse or mount manually:"
+    echo "    vmhgfs-fuse .host:/ /mnt/hgfs -o allow_other"
+    echo
+
+    exit 1
+
+fi
+
+#
+# VERIFY VPN FILE
+#
+
+if [[ ! -f "$VPN_PATH" ]]; then
+
+    echo "[!] VPN config not found:"
+    echo "    $VPN_PATH"
+    echo
+
+    exit 1
+
+fi
+
+echo "[+] VPN Config Found"
+
+#
+# SAVE CURRENT WINDOW
+#
+
+CURRENT_WINDOW=$(xdotool getactivewindow 2>/dev/null || true)
+
+#
+# START VPN TERMINAL
+#
+
+echo
+echo "[+] Launching HTB VPN terminal..."
+echo
+
+qterminal \
+    --title "HTB VPN" \
+    -e bash -c "
+        clear
+
+        echo '======================================'
+        echo '           HACK THE BOX VPN'
+        echo '======================================'
+
+        echo
+        echo '[+] Connecting...'
+        echo
+
+        openvpn --config '$VPN_PATH'
+
+        echo
+        echo '[!] VPN session ended.'
+        echo
+
+        read -p 'Press Enter to close...'
+    " >/dev/null 2>&1 &
+
+#
+# RETURN FOCUS
+#
+
+sleep 0.4
+
+if [[ -n "${CURRENT_WINDOW:-}" ]]; then
+    xdotool windowactivate "$CURRENT_WINDOW" >/dev/null 2>&1 || true
+fi
+
+echo "[+] VPN terminal launched."
