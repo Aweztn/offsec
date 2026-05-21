@@ -1,0 +1,47 @@
+#!/bin/bash
+
+clear
+
+#
+# ENSURE ROOT
+#
+
+if [[ $EUID -ne 0 ]]; then
+    exec sudo "$0" "$@"
+fi
+
+echo "======================================"
+echo "              DRAGON"
+echo "======================================"
+
+#
+# CLEANSE
+#
+
+echo
+echo "[+] Running cleanse..."
+echo
+
+cleanse
+
+#
+# HTB VPN
+#
+
+echo
+echo "[+] Launching HTB VPN..."
+echo
+
+htb
+
+#
+# HEALTH
+#
+
+echo
+echo "[+] Launching health monitor..."
+echo
+
+sleep 3
+
+health
