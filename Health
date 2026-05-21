@@ -1,0 +1,81 @@
+#!/bin/bash
+
+set -uo pipefail
+
+#
+# ENSURE ROOT
+#
+
+if [[ $EUID -ne 0 ]]; then
+    echo
+    echo "[!] Please run as root."
+    echo
+
+    exec sudo "$0" "$@"
+fi
+
+#
+# LIVE MODE
+#
+
+LIVE_MODE=false
+
+if [[ "${1:-}" == "--live" ]]; then
+    LIVE_MODE=true
+fi
+
+#
+# COLORS
+#
+
+RED='\033[1;31m'
+NC='\033[0m'
+
+#
+# TERMINAL
+#
+
+TERM_WIDTH=$(tput cols)
+
+center() {
+    printf "%*s\n" $(((${#1} + TERM_WIDTH) / 2)) "$1"
+}
+
+line=$(printf '=%.0s' $(seq 1 "$TERM_WIDTH"))
+
+#
+# STATIC VALUES
+#
+
+PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "Unavailable")
+
+GO_VAL=$(go version | awk '{print "go" $3 ""}' | sed 's/go//2')
+
+draw_health() {
+
+#
+# SYSTEM DATA
+#
+
+HOSTNAME_VAL=$(hostname)
+
+KERNEL_VAL=$(uname -r)
+
+UPTIME_VAL=$(uptime -p)
+
+LOAD_VAL=$(uptime | awk -F'load average:' '{gsub(/^ +/, "", $2); print $2}')
+
+CPU_VAL=$(top -bn1 | awk '/Cpu\(s\)/ {print $2 + $4 "%"}')
+
+RAM_VAL=$(free -h | awk '/Mem:/ {print $3 " / " $2}')
+
+DISK_VAL=$(df -h / | awk 'NR==2 {print $3 " / " $2 " (" $5 " used)"}')
+
+SHELL_VAL=$(basename "$SHELL")
+
+DNS_VAL=$(awk '/nameserver/ {print $2}' /etc/resolv.conf | xargs | sed 's/ /, /g')
+
+REAL_USER="${SUDO_USER:-$(logname 2>/dev/null || echo root)}"
+
+if [[ $EUID -eq 0 ]]; then
+    ROOT_HOME_SIZE=$(du -sh /
