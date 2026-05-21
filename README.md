@@ -33,7 +33,7 @@ This repository is intended to grow into a complete offensive security knowledge
 ## Current Repository Structure
 
 ```text
-red-dragon-offsec/
+reddragon-offsec/
 ├── scripts/
 │   ├── cleanse
 │   ├── dragon
