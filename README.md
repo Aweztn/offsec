@@ -1,4 +1,4 @@
-# RedDragon OffSec
+# OffSec
 
 A growing offensive security, ethical hacking, automation, and lab repository focused on practical learning, workflow optimization, and cybersecurity operations.
 
@@ -33,7 +33,7 @@ This repository is intended to grow into a complete offensive security knowledge
 ## Current Repository Structure
 
 ```text
-reddragon-offsec/
+offsec/
 ├── scripts/
 │   ├── cleanse
 │   ├── dragon
